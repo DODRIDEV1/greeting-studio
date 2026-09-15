@@ -55,6 +55,268 @@ export type Database = {
           },
         ]
       }
+      billing_document_lines: {
+        Row: {
+          created_at: string
+          designation: string
+          document_id: string
+          id: string
+          quantity: number
+          section: string | null
+          sort_order: number
+          total: number
+          unit: string | null
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          designation?: string
+          document_id: string
+          id?: string
+          quantity?: number
+          section?: string | null
+          sort_order?: number
+          total?: number
+          unit?: string | null
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          designation?: string
+          document_id?: string
+          id?: string
+          quantity?: number
+          section?: string | null
+          sort_order?: number
+          total?: number
+          unit?: string | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_document_lines_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "billing_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_documents: {
+        Row: {
+          city: string | null
+          client_address: string | null
+          client_email: string | null
+          client_ice: string | null
+          client_name: string
+          client_phone: string | null
+          created_at: string
+          created_by: string | null
+          deposit: number
+          discount: number
+          doc_type: string
+          due_date: string | null
+          id: string
+          intro_text: string | null
+          issue_date: string
+          net_to_pay: number
+          notes: string | null
+          number: string
+          order_ref: string | null
+          source_document_id: string | null
+          status: string
+          terms: string | null
+          total_ht: number
+          total_ttc: number
+          total_vat: number
+          updated_at: string
+          vat_rate: number
+        }
+        Insert: {
+          city?: string | null
+          client_address?: string | null
+          client_email?: string | null
+          client_ice?: string | null
+          client_name: string
+          client_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          deposit?: number
+          discount?: number
+          doc_type?: string
+          due_date?: string | null
+          id?: string
+          intro_text?: string | null
+          issue_date?: string
+          net_to_pay?: number
+          notes?: string | null
+          number: string
+          order_ref?: string | null
+          source_document_id?: string | null
+          status?: string
+          terms?: string | null
+          total_ht?: number
+          total_ttc?: number
+          total_vat?: number
+          updated_at?: string
+          vat_rate?: number
+        }
+        Update: {
+          city?: string | null
+          client_address?: string | null
+          client_email?: string | null
+          client_ice?: string | null
+          client_name?: string
+          client_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          deposit?: number
+          discount?: number
+          doc_type?: string
+          due_date?: string | null
+          id?: string
+          intro_text?: string | null
+          issue_date?: string
+          net_to_pay?: number
+          notes?: string | null
+          number?: string
+          order_ref?: string | null
+          source_document_id?: string | null
+          status?: string
+          terms?: string | null
+          total_ht?: number
+          total_ttc?: number
+          total_vat?: number
+          updated_at?: string
+          vat_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_documents_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "billing_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          document_id: string
+          id: string
+          method: string
+          note: string | null
+          paid_at: string
+          reference: string | null
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          document_id: string
+          id?: string
+          method?: string
+          note?: string | null
+          paid_at?: string
+          reference?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          document_id?: string
+          id?: string
+          method?: string
+          note?: string | null
+          paid_at?: string
+          reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_payments_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "billing_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_settings: {
+        Row: {
+          address: string | null
+          capital: string | null
+          company_name: string
+          created_at: string
+          currency: string
+          default_vat: number
+          email: string | null
+          ice: string | null
+          id: string
+          if_number: string | null
+          letterhead_url: string | null
+          logo_url: string | null
+          patente: string | null
+          phone: string | null
+          rc: string | null
+          rib: string | null
+          stamp_url: string | null
+          terms: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          capital?: string | null
+          company_name?: string
+          created_at?: string
+          currency?: string
+          default_vat?: number
+          email?: string | null
+          ice?: string | null
+          id?: string
+          if_number?: string | null
+          letterhead_url?: string | null
+          logo_url?: string | null
+          patente?: string | null
+          phone?: string | null
+          rc?: string | null
+          rib?: string | null
+          stamp_url?: string | null
+          terms?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          capital?: string | null
+          company_name?: string
+          created_at?: string
+          currency?: string
+          default_vat?: number
+          email?: string | null
+          ice?: string | null
+          id?: string
+          if_number?: string | null
+          letterhead_url?: string | null
+          logo_url?: string | null
+          patente?: string | null
+          phone?: string | null
+          rc?: string | null
+          rib?: string | null
+          stamp_url?: string | null
+          terms?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       blog_posts: {
         Row: {
           author_id: string | null
@@ -122,6 +384,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cart_items: {
+        Row: {
+          created_at: string
+          currency: string
+          email: string
+          id: string
+          image_url: string | null
+          item_id: string | null
+          item_type: string
+          name: string
+          quantity: number
+          slug: string | null
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          email: string
+          id?: string
+          image_url?: string | null
+          item_id?: string | null
+          item_type?: string
+          name: string
+          quantity?: number
+          slug?: string | null
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          email?: string
+          id?: string
+          image_url?: string | null
+          item_id?: string | null
+          item_type?: string
+          name?: string
+          quantity?: number
+          slug?: string | null
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       contact_messages: {
         Row: {
@@ -289,6 +596,109 @@ export type Database = {
           {
             foreignKeyName: "media_assets_uploaded_by_fkey"
             columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string | null
+          item_type: string
+          name: string
+          order_id: string
+          quantity: number
+          slug: string | null
+          total: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          item_type?: string
+          name: string
+          order_id: string
+          quantity?: number
+          slug?: string | null
+          total?: number
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          item_type?: string
+          name?: string
+          order_id?: string
+          quantity?: number
+          slug?: string | null
+          total?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          company: string | null
+          created_at: string
+          currency: string
+          email: string
+          full_name: string | null
+          handled_by: string | null
+          id: string
+          note: string | null
+          number: string
+          phone: string | null
+          status: string
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          currency?: string
+          email: string
+          full_name?: string | null
+          handled_by?: string | null
+          id?: string
+          note?: string | null
+          number: string
+          phone?: string | null
+          status?: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          currency?: string
+          email?: string
+          full_name?: string | null
+          handled_by?: string | null
+          id?: string
+          note?: string | null
+          number?: string
+          phone?: string | null
+          status?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_handled_by_fkey"
+            columns: ["handled_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -774,6 +1184,30 @@ export type Database = {
           sort_order?: number
           status?: Database["public"]["Enums"]["content_status"]
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_permissions: {
+        Row: {
+          created_at: string
+          maintenance_access: boolean
+          modules: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          maintenance_access?: boolean
+          modules?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          maintenance_access?: boolean
+          modules?: Json
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
