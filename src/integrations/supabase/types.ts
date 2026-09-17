@@ -2854,6 +2854,8 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      my_company_ids: { Args: never; Returns: string[] }
+      my_company_user_ids: { Args: never; Returns: string[] }
     }
     Enums: {
       app_role: "super_admin" | "admin" | "commercial" | "editor"
