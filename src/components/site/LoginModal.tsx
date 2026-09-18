@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff, Loader2, Lock, Mail, Shield, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/integrations/supabase/client";
 
 export function LoginModal({
   open,
