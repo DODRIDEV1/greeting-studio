@@ -25,13 +25,25 @@ export function LoginModal({
     setError(null);
     setLoading(true);
     const res = await loginWithPassword(email, password);
-    setLoading(false);
     if (!res.ok) {
+      setLoading(false);
       setError(res.error);
       return;
     }
+    // Personnel interne → Back Office, client → espace SaaS.
+    const { data: auth } = await supabase.auth.getUser();
+    const uid = auth.user?.id;
+    let target: "/admin" | "/espace" = "/espace";
+    if (uid) {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", uid);
+      if ((roles ?? []).length > 0) target = "/admin";
+    }
+    setLoading(false);
     onClose();
-    navigate({ to: "/admin" });
+    navigate({ to: target });
   };
 
   return (
