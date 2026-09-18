@@ -57,9 +57,11 @@ export function AdminShell({
 
   useEffect(() => {
     if (ready && !user) navigate({ to: "/" });
+    // Un compte client (sans rôle interne) n'accède pas au Back Office.
+    if (ready && user && user.roles.length === 0) navigate({ to: "/espace", replace: true });
   }, [ready, user, navigate]);
 
-  if (!ready || !user) {
+  if (!ready || !user || user.roles.length === 0) {
     return (
       <div className="grid min-h-screen place-items-center bg-[#05060A] text-white/60">
         Chargement…
