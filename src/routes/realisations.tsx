@@ -21,7 +21,7 @@ export const Route = createFileRoute("/realisations")({
   errorComponent: ({ error }) => (
     <SiteLayout>
       <div role="alert" className="mx-auto max-w-3xl px-5 py-32 text-white/80">
-        Impossible de charger les réalisations : {error.message}
+        Impossible de charger les réalisations : {error instanceof Error ? error.message : String(error)}
       </div>
     </SiteLayout>
   ),
