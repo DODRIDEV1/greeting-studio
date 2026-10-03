@@ -1,16 +1,19 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
-  AppWindow,
-  Building2,
-  CalendarClock,
+  Boxes,
+  Calculator,
   FileText,
-  Layers,
+  LayoutGrid,
   LogOut,
-  ShieldCheck,
+  Lock,
+  Users,
+  Wallet,
+  type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { useClientWorkspace } from "@/lib/client-portal";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/espace")({
   component: EspacePage,
@@ -18,255 +21,196 @@ export const Route = createFileRoute("/espace")({
     meta: [
       { title: "Espace client SaaS — DODRICOM" },
       { name: "robots", content: "noindex, nofollow" },
-      {
-        name: "description",
-        content:
-          "Espace client DODRICOM : accédez aux applications et services inclus dans votre abonnement SaaS.",
-      },
+      { name: "description", content: "Espace client DODRICOM : accédez aux programmes SaaS activés pour votre société." },
       { property: "og:title", content: "Espace client SaaS — DODRICOM" },
-      {
-        property: "og:description",
-        content:
-          "Accédez aux applications, services et factures liés à votre abonnement DODRICOM.",
-      },
+      { property: "og:description", content: "Accédez aux programmes SaaS activés pour votre société." },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });
 
-function fmtDate(v: unknown) {
-  if (!v) return "—";
-  const d = new Date(String(v));
-  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString("fr-FR");
+const ICONS: Record<string, LucideIcon> = {
+  facturation: FileText,
+  comptabilite: Calculator,
+  rh: Users,
+  stock: Boxes,
+  finance: Wallet,
+};
+
+type App = { id: string; code: string; name: string; description: string | null };
+type Service = { id: string; app_id: string; name: string; description: string | null };
+
+function useWorkspace(userId?: string) {
+  return useQuery({
+    queryKey: ["espace", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data: member, error } = await supabase
+        .from("company_users")
+        .select("id, full_name, is_active, company_id")
+        .eq("profile_id", userId!)
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      if (!member?.company_id) return { member: null, company: null, apps: [] as App[], services: [] as Service[] };
+
+      const [{ data: company }, { data: subs }] = await Promise.all([
+        supabase.from("companies").select("id, name, status, start_date, end_date").eq("id", member.company_id).maybeSingle(),
+        supabase.from("subscriptions").select("app_id, status").eq("company_id", member.company_id).eq("status", "active"),
+      ]);
+      const appIds = [...new Set((subs ?? []).map((s) => s.app_id).filter(Boolean) as string[])];
+      const [{ data: apps }, { data: services }] = appIds.length
+        ? await Promise.all([
+            supabase.from("saas_apps").select("id, code, name, description").in("id", appIds).eq("is_active", true).order("sort_order"),
+            supabase.from("saas_services").select("id, app_id, name, description").in("app_id", appIds).eq("is_active", true).is("parent_id", null).order("sort_order"),
+          ])
+        : [{ data: [] }, { data: [] }];
+      return { member, company, apps: (apps ?? []) as App[], services: (services ?? []) as Service[] };
+    },
+  });
+}
+
+function companyActive(c: { status: string; start_date: string | null; end_date: string | null } | null) {
+  if (!c || c.status !== "active") return false;
+  const t = new Date().toISOString().slice(0, 10);
+  if (c.start_date && c.start_date > t) return false;
+  if (c.end_date && c.end_date < t) return false;
+  return true;
 }
 
 function EspacePage() {
   const { user, ready, logout } = useAuth();
   const navigate = useNavigate();
-  const { data, isLoading, error } = useClientWorkspace(user?.id);
+  const { data, isLoading, error } = useWorkspace(user?.id);
+  const [current, setCurrent] = useState<string | null>(null);
 
   useEffect(() => {
     if (ready && !user) navigate({ to: "/", replace: true });
   }, [ready, user, navigate]);
-
-  // Le personnel interne va au back-office.
   useEffect(() => {
     if (user && user.roles.length > 0) navigate({ to: "/admin", replace: true });
   }, [user, navigate]);
 
-  if (!ready || isLoading) {
-    return <Center>Chargement de votre espace…</Center>;
-  }
+  const signOut = async () => { await logout(); navigate({ to: "/", replace: true }); };
 
-  if (error) {
-    return <Center>Impossible de charger votre espace pour le moment.</Center>;
-  }
+  if (!ready || isLoading || !user) return <Center>Chargement de votre espace…</Center>;
+  if (error) return <Center>Impossible de charger votre espace pour le moment.</Center>;
 
-  if (!data?.membership) {
+  if (!data?.member || !data.company) {
     return (
       <Center>
         <div className="max-w-md space-y-3">
           <p className="text-lg font-semibold text-white">Aucun accès SaaS trouvé</p>
-          <p className="text-sm text-white/60">
-            Votre compte n'est rattaché à aucune société cliente. Contactez DODRICOM
-            pour activer votre accès.
-          </p>
-          <Link to="/contact" className="btn-gradient inline-flex rounded-full px-5 py-2.5 text-sm font-semibold">
-            Nous contacter
-          </Link>
+          <p className="text-sm text-white/60">Votre compte n'est rattaché à aucune société cliente. Contactez DODRICOM pour activer votre accès.</p>
+          <div className="flex justify-center gap-2">
+            <Link to="/contact" className="btn-gradient inline-flex rounded-full px-5 py-2.5 text-sm font-semibold">Nous contacter</Link>
+            <button onClick={signOut} className="rounded-full border border-white/15 px-5 py-2.5 text-sm text-white/80">Se déconnecter</button>
+          </div>
         </div>
       </Center>
     );
   }
 
-  const active = data.activeSubscriptions;
-  const suspended = active.length === 0;
+  if (!companyActive(data.company)) {
+    return (
+      <Center>
+        <div className="glass max-w-md space-y-4 p-8">
+          <Lock className="mx-auto h-10 w-10 text-amber-300" />
+          <p className="text-lg font-semibold text-white">Abonnement expiré</p>
+          <p className="text-sm text-white/70">
+            Merci de vous abonner pour bénéficier du service. L'abonnement de <b>{data.company.name}</b> n'est plus actif
+            {data.company.end_date ? ` depuis le ${new Date(data.company.end_date).toLocaleDateString("fr-FR")}` : ""}.
+          </p>
+          <div className="flex justify-center gap-2">
+            <Link to="/contact" className="btn-gradient inline-flex rounded-full px-5 py-2.5 text-sm font-semibold">Renouveler l'abonnement</Link>
+            <button onClick={signOut} className="rounded-full border border-white/15 px-5 py-2.5 text-sm text-white/80">Se déconnecter</button>
+          </div>
+        </div>
+      </Center>
+    );
+  }
+
+  const app = data.apps.find((a) => a.id === current) ?? null;
+  const services = app ? data.services.filter((s) => s.app_id === app.id) : [];
 
   return (
-    <main className="min-h-screen bg-[#07060d] px-5 py-10 lg:px-10">
-      <div className="mx-auto max-w-6xl space-y-8">
-        <header className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/40">
-              Espace client
-            </p>
-            <h1 className="mt-1 text-3xl font-bold text-white">
-              {String(data.company?.["name"] ?? "Votre société")}
-            </h1>
-            <p className="mt-1 text-sm text-white/55">
-              {user?.email}
-              {data.role ? ` · ${String(data.role["name"])}` : ""}
-            </p>
-          </div>
-          <button
-            onClick={async () => {
-              await logout();
-              navigate({ to: "/", replace: true });
-            }}
-            className="btn-ghost-glow inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold"
-          >
-            <LogOut className="h-4 w-4" /> Se déconnecter
-          </button>
-        </header>
+    <div className="flex min-h-screen bg-[#05060A] text-white">
+      <aside className="flex w-64 shrink-0 flex-col border-r border-white/5 bg-white/[0.02] p-4">
+        <div className="mb-6">
+          <p className="text-xs uppercase tracking-widest text-white/40">Société</p>
+          <p className="font-semibold">{data.company.name}</p>
+          <p className="text-xs text-white/50">{data.member.full_name}</p>
+        </div>
+        <nav className="flex-1 space-y-1">
+          <SideBtn active={!app} icon={LayoutGrid} label="Accueil" onClick={() => setCurrent(null)} />
+          <p className="px-3 pb-1 pt-4 text-[11px] uppercase tracking-widest text-white/40">Mes programmes</p>
+          {data.apps.map((a) => (
+            <SideBtn key={a.id} active={current === a.id} icon={ICONS[a.code] ?? LayoutGrid} label={a.name} onClick={() => setCurrent(a.id)} />
+          ))}
+          {data.apps.length === 0 && <p className="px-3 text-xs text-white/50">Aucun programme activé.</p>}
+        </nav>
+        <button onClick={signOut} className="mt-4 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/60 hover:bg-white/5 hover:text-white">
+          <LogOut className="h-4 w-4" /> Se déconnecter
+        </button>
+      </aside>
 
-        {suspended && (
-          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-            Aucun abonnement actif. L'accès aux applications est suspendu jusqu'au
-            renouvellement.
+      <main className="flex-1 p-8">
+        {!app ? (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-semibold">Bienvenue, {data.member.full_name}</h1>
+              <p className="text-sm text-white/60">
+                Abonnement actif{data.company.end_date ? ` jusqu'au ${new Date(data.company.end_date).toLocaleDateString("fr-FR")}` : ""}. Choisissez un programme.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {data.apps.map((a) => {
+                const Icon = ICONS[a.code] ?? LayoutGrid;
+                return (
+                  <button key={a.id} onClick={() => setCurrent(a.id)} className="glass p-5 text-left transition hover:bg-white/[0.06]">
+                    <Icon className="mb-3 h-6 w-6 text-violet-300" />
+                    <p className="font-semibold">{a.name}</p>
+                    <p className="text-xs text-white/50">{a.description ?? ""}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-semibold">{app.name}</h1>
+              <p className="text-sm text-white/60">{app.description ?? ""}</p>
+            </div>
+            {services.length > 0 ? (
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {services.map((s) => (
+                  <div key={s.id} className="glass p-5">
+                    <p className="font-semibold">{s.name}</p>
+                    <p className="text-xs text-white/50">{s.description ?? ""}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="glass p-8 text-sm text-white/60">Les modules de ce programme seront bientôt disponibles ici.</div>
+            )}
           </div>
         )}
+      </main>
+    </div>
+  );
+}
 
-        <section className="grid gap-4 sm:grid-cols-3">
-          <Stat icon={<Layers className="h-4 w-4" />} label="Abonnements actifs" value={active.length} />
-          <Stat icon={<AppWindow className="h-4 w-4" />} label="Applications" value={suspended ? 0 : data.apps.length} />
-          <Stat icon={<ShieldCheck className="h-4 w-4" />} label="Services autorisés" value={suspended ? 0 : data.services.length} />
-        </section>
-
-        <Block title="Mes applications" icon={<AppWindow className="h-4 w-4" />}>
-          {suspended || data.apps.length === 0 ? (
-            <Empty>Aucune application disponible avec votre abonnement.</Empty>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {data.apps.map((a) => (
-                <div key={String(a["id"])} className="glass rounded-2xl border border-white/10 p-4">
-                  <p className="font-semibold text-white">{String(a["name"])}</p>
-                  <p className="mt-1 text-xs text-white/55">{String(a["description"] ?? "")}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </Block>
-
-        <Block title="Mes services" icon={<ShieldCheck className="h-4 w-4" />}>
-          {suspended || data.services.length === 0 ? (
-            <Empty>Aucun service autorisé par votre plan ou votre rôle.</Empty>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {data.services.map((s) => (
-                <span
-                  key={String(s["id"])}
-                  className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs text-white/80"
-                >
-                  {String(s["name"])}
-                </span>
-              ))}
-            </div>
-          )}
-        </Block>
-
-        <Block title="Mes abonnements" icon={<CalendarClock className="h-4 w-4" />}>
-          {data.subscriptions.length === 0 ? (
-            <Empty>Aucun abonnement enregistré.</Empty>
-          ) : (
-            <Table
-              head={["Plan", "Application", "Statut", "Début", "Fin"]}
-              rows={data.subscriptions.map((s) => [
-                String((s["plan"] as Record<string, unknown> | null)?.["name"] ?? "—"),
-                String((s["app"] as Record<string, unknown> | null)?.["name"] ?? "—"),
-                String(s["status"] ?? "—"),
-                fmtDate(s["start_date"]),
-                fmtDate(s["end_date"]),
-              ])}
-            />
-          )}
-        </Block>
-
-        <Block title="Mes factures" icon={<FileText className="h-4 w-4" />}>
-          {data.invoices.length === 0 ? (
-            <Empty>Aucune facture pour le moment.</Empty>
-          ) : (
-            <Table
-              head={["Numéro", "Date", "Montant", "Statut"]}
-              rows={data.invoices.map((i) => [
-                String(i["number"] ?? i["id"]),
-                fmtDate(i["issue_date"]),
-                `${Number(i["total"] ?? i["amount"] ?? 0).toLocaleString("fr-FR")} DH`,
-                String(i["status"] ?? "—"),
-              ])}
-            />
-          )}
-        </Block>
-
-        <p className="flex items-center gap-2 text-xs text-white/40">
-          <Building2 className="h-3.5 w-3.5" /> DODRICOM · Espace réservé aux clients
-        </p>
-      </div>
-    </main>
+function SideBtn({ active, icon: Icon, label, onClick }: { active: boolean; icon: LucideIcon; label: string; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm ${active ? "bg-violet-500/20 text-white" : "text-white/70 hover:bg-white/5"}`}>
+      <Icon className="h-4 w-4" /> {label}
+    </button>
   );
 }
 
 function Center({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="grid min-h-screen place-items-center bg-[#07060d] px-6 text-center text-white/70">
-      {children}
-    </main>
-  );
-}
-
-function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
-  return (
-    <div className="glass rounded-2xl border border-white/10 p-4">
-      <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-white/45">
-        {icon} {label}
-      </p>
-      <p className="mt-2 text-2xl font-bold text-white">{value}</p>
-    </div>
-  );
-}
-
-function Block({
-  title,
-  icon,
-  children,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="space-y-3">
-      <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.15em] text-white/60">
-        {icon} {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
-
-function Empty({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/50">
-      {children}
-    </p>
-  );
-}
-
-function Table({ head, rows }: { head: string[]; rows: string[][] }) {
-  return (
-    <div className="overflow-x-auto rounded-2xl border border-white/10">
-      <table className="w-full text-left text-sm">
-        <thead className="bg-white/[0.04] text-[11px] uppercase tracking-[0.12em] text-white/45">
-          <tr>
-            {head.map((h) => (
-              <th key={h} className="px-4 py-3 font-semibold">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={i} className="border-t border-white/5 text-white/80">
-              {r.map((c, j) => (
-                <td key={j} className="px-4 py-3">
-                  {c}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+  return <div className="grid min-h-screen place-items-center bg-[#05060A] px-4 text-center text-white/70">{children}</div>;
 }
