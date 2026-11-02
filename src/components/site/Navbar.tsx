@@ -12,7 +12,7 @@ const ALL_NAV = [
   { to: "/a-propos", slug: "a-propos", label: "À propos" },
   { to: "/services", slug: "services", label: "Nos services" },
   { to: "/realisations", slug: "realisations", label: "Réalisations" },
-  { to: "/blog", slug: "blog", label: "Blog" },
+  { to: "/saas", slug: "saas", label: "SaaS" },
   { to: "/contact", slug: "contact", label: "Contact" },
 ] as const;
 
