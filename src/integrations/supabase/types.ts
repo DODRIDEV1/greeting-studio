@@ -779,6 +779,8 @@ export type Database = {
           handled_by: string | null
           id: string
           message: string
+          order_reference: string | null
+          order_status: string | null
           phone: string | null
           service_interest: string | null
           status: Database["public"]["Enums"]["message_status"]
@@ -793,6 +795,8 @@ export type Database = {
           handled_by?: string | null
           id?: string
           message: string
+          order_reference?: string | null
+          order_status?: string | null
           phone?: string | null
           service_interest?: string | null
           status?: Database["public"]["Enums"]["message_status"]
@@ -807,6 +811,8 @@ export type Database = {
           handled_by?: string | null
           id?: string
           message?: string
+          order_reference?: string | null
+          order_status?: string | null
           phone?: string | null
           service_interest?: string | null
           status?: Database["public"]["Enums"]["message_status"]
@@ -2854,6 +2860,16 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      lookup_customer_orders: {
+        Args: { p_email: string; p_order_reference: string }
+        Returns: {
+          created_at: string
+          message: string
+          order_reference: string
+          order_status: string
+          subject: string
+        }[]
+      }
       my_company_ids: { Args: never; Returns: string[] }
       my_company_user_ids: { Args: never; Returns: string[] }
     }
