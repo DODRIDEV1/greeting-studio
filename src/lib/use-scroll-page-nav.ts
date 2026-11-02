@@ -6,7 +6,7 @@ export const PAGE_ORDER = [
   "/a-propos",
   "/services",
   "/realisations",
-  "/blog",
+  "/saas",
   "/contact",
 ] as const;
 

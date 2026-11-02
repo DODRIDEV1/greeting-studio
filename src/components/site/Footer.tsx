@@ -37,7 +37,6 @@ export function Footer() {
                 ["/services", "Services"],
                 ["/realisations", "Réalisations"],
                 ["/saas", "SaaS"],
-                ["/blog", "Blog"],
               ].map(([to, label]) => (
                 <li key={to}>
                   <Link to={to} className="transition hover:text-white">
